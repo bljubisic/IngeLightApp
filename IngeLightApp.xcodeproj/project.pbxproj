@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		50E08E492F2C9A720060D06E /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50E08E482F2C9A720060D06E /* CoreBluetooth.framework */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		50E08E282F2C970E0060D06E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		50E08E1A2F2C97040060D06E /* IngeLightApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IngeLightApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		50E08E272F2C970E0060D06E /* IngeLightAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IngeLightAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		50E08E312F2C970F0060D06E /* IngeLightAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IngeLightAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		50E08E482F2C9A720060D06E /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +57,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				50E08E492F2C9A720060D06E /* CoreBluetooth.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +84,7 @@
 				50E08E1C2F2C97040060D06E /* IngeLightApp */,
 				50E08E2A2F2C970E0060D06E /* IngeLightAppTests */,
 				50E08E342F2C970F0060D06E /* IngeLightAppUITests */,
+				50E08E472F2C9A720060D06E /* Frameworks */,
 				50E08E1B2F2C97040060D06E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +97,14 @@
 				50E08E312F2C970F0060D06E /* IngeLightAppUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		50E08E472F2C9A720060D06E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				50E08E482F2C9A720060D06E /* CoreBluetooth.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -395,8 +410,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ENT89NLKC9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "App need bluetooth connection to display and to connect to the needed device";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -426,8 +443,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ENT89NLKC9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "App need bluetooth connection to display and to connect to the needed device";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
