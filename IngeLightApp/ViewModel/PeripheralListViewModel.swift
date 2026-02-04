@@ -8,65 +8,149 @@
 import CoreBluetooth
 import Foundation
 import SwiftUI
+import RxSwift
+import RxCocoa
 
 @Observable
-final class PeripheralListViewModel: NSObject {
-    private let bluetoothManager: CBCentralManager
+final class PeripheralListViewModel {
+    private let bluetoothManager: BluetoothManagerProtocol
+    private let disposeBag = DisposeBag()
+
     private(set) var state: CBManagerState = .unknown
-    
-    private var discoveredPeripherials: Set<CBPeripheral> = []
-    private(set) var displayedPeripherials: [CBPeripheral] = []
-    
-    init(bluetoothManager: CBCentralManager) {
+    private(set) var displayedDevices: [BluetoothDeviceProtocol] = []
+    private(set) var connectedDevice: BluetoothDeviceProtocol?
+    private(set) var discoveredServices: [BluetoothServiceProtocol] = []
+    private(set) var errorMessage: String?
+
+    init(bluetoothManager: BluetoothManagerProtocol = BluetoothManager()) {
         self.bluetoothManager = bluetoothManager
-        super.init()
-        bluetoothManager.delegate = self
+        setupBindings()
     }
-    
-    func scan() {
-        bluetoothManager.scanForPeripherals(withServices: nil, options: nil)
-    }
-    
-    func connect(to peripheral: CBPeripheral) {
-        bluetoothManager.stopScan()
-        bluetoothManager.connect(peripheral, options: nil)
-    }
-}
 
-extension PeripheralListViewModel: CBCentralManagerDelegate {
-    func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        self.state = central.state
-    }
-    
-    func centralManager(_ central: CBCentralManager,
-                        didDiscover peripheral: CBPeripheral,
-                        advertisementData: [String: Any],
-                        rssi RSSI: NSNumber) {
-        if !discoveredPeripherials.contains(peripheral) {
-            discoveredPeripherials.insert(peripheral)
-            displayedPeripherials.append(peripheral)
-        }
-    }
-    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        print("Connected to \(peripheral.name ?? "Unknown")")
-        peripheral.delegate = self
-        peripheral.discoverServices(nil)
-    }
-}
+    private func setupBindings() {
+        bluetoothManager.state
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] state in
+                self?.state = state
+            })
+            .disposed(by: disposeBag)
 
-extension PeripheralListViewModel: CBPeripheralDelegate {
-    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        if let error = error {
-            print("Error discovering services: \(error.localizedDescription)")
+        bluetoothManager.discoveredDevices
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] devices in
+                self?.displayedDevices = devices
+            })
+            .disposed(by: disposeBag)
+
+        bluetoothManager.connectedDevice
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] device in
+                self?.connectedDevice = device
+                self?.setupDeviceBinding(device)
+            })
+            .disposed(by: disposeBag)
+    }
+
+    private func setupDeviceBinding(_ device: BluetoothDeviceProtocol?) {
+        guard let device = device else {
+            discoveredServices = []
             return
         }
-        
-        guard let services = peripheral.services else { return }
-        for service in services {
-            peripheral.discoverCharacteristics(nil, for: service)
-        }
+
+        device.services
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] services in
+                self?.discoveredServices = services
+            })
+            .disposed(by: disposeBag)
     }
 
+    func scan() {
+        bluetoothManager.startScanning(services: nil)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                self?.errorMessage = nil
+            }, onError: { [weak self] error in
+                self?.errorMessage = "Scanning failed: \(error.localizedDescription)"
+            })
+            .disposed(by: disposeBag)
+    }
+
+    func stopScan() {
+        bluetoothManager.stopScanning()
+    }
+
+    func connect(to device: BluetoothDeviceProtocol) {
+        stopScan()
+
+        bluetoothManager.connect(to: device)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                self?.errorMessage = nil
+                self?.discoverServices(for: device)
+            }, onError: { [weak self] error in
+                self?.errorMessage = "Connection failed: \(error.localizedDescription)"
+            })
+            .disposed(by: disposeBag)
+    }
+
+    func disconnect(from device: BluetoothDeviceProtocol) {
+        bluetoothManager.disconnect(from: device)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                self?.errorMessage = nil
+                self?.discoveredServices = []
+            }, onError: { [weak self] error in
+                self?.errorMessage = "Disconnection failed: \(error.localizedDescription)"
+            })
+            .disposed(by: disposeBag)
+    }
+
+    private func discoverServices(for device: BluetoothDeviceProtocol) {
+        device.discoverServices()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { [weak self] services in
+                self?.discoveredServices = services
+            }, onFailure: { [weak self] error in
+                self?.errorMessage = "Service discovery failed: \(error.localizedDescription)"
+            })
+            .disposed(by: disposeBag)
+    }
+
+    func readCharacteristic(_ characteristic: BluetoothCharacteristicProtocol) {
+        characteristic.readValue()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onSuccess: { data in
+                if let data = data {
+                    print("Read value: \(data.map { String(format: "%02x", $0) }.joined())")
+                }
+            }, onFailure: { [weak self] error in
+                self?.errorMessage = "Read failed: \(error.localizedDescription)"
+            })
+            .disposed(by: disposeBag)
+    }
+
+    func writeCharacteristic(_ characteristic: BluetoothCharacteristicProtocol, data: Data) {
+        characteristic.writeValue(data, type: .withResponse)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                self?.errorMessage = nil
+            }, onError: { [weak self] error in
+                self?.errorMessage = "Write failed: \(error.localizedDescription)"
+            })
+            .disposed(by: disposeBag)
+    }
+
+    func setNotify(_ enabled: Bool, for characteristic: BluetoothCharacteristicProtocol) {
+        characteristic.setNotifyValue(enabled)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onCompleted: { [weak self] in
+                self?.errorMessage = nil
+            }, onError: { [weak self] error in
+                self?.errorMessage = "Notify setup failed: \(error.localizedDescription)"
+            })
+            .disposed(by: disposeBag)
+    }
 }
 
 
