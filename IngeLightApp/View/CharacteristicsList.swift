@@ -75,7 +75,7 @@ struct ServiceSection: View {
 
     var body: some View {
         Section(header: HStack {
-            Text("Service: \(service.uuid.uuidString)")
+            Text("Service: \(service.service.description)")
                 .font(.caption)
             if service.isPrimary {
                 Text("PRIMARY")
@@ -105,12 +105,33 @@ struct CharacteristicRow: View {
     @State var viewModel: PeripheralListViewModel
     @State private var value: Data?
     @State private var isNotifying = false
+
+    // Explicit init to properly set up the @State viewModel backing storage
+    init(characteristic: BluetoothCharacteristicProtocol, viewModel: PeripheralListViewModel) {
+        self.characteristic = characteristic
+        self._viewModel = State(initialValue: viewModel)
+    }
+    
+    // Use CBUUID keys to match `characteristic.uuid: CBUUID` and fix malformed entries
+    private var characteristicUUIDTranslation: [CBUUID: String] = [
+        CBUUID(string: "9202d270-84ba-4561-a59d-7919212768a1"): "Busy Status",
+        CBUUID(string: "2A37"): "Heart Rate Measurement",
+        CBUUID(string: "32fd714a-0510-4025-8c2a-58fff4d5e99d"): "Device Name",
+        CBUUID(string: "7db5cec5-3d74-4ff9-bd1a-57664f50e87b"): "Display Mode",
+        CBUUID(string: "bafad844-484d-4e41-a31d-e3b14eb50db6"): "Boot Text",
+        CBUUID(string: "3e856d44-0b59-48cc-a961-251f074c3884"): "Brightness",
+        CBUUID(string: "a2a5ff5b-1465-4d0f-b8b5-9d2ca30ab9f0"): "Device Rotation",
+        CBUUID(string: "887953b0-e363-4d57-9711-06e845cb4da4"): "Scroll Delay",
+        CBUUID(string: "fcfca47e-f305-4841-b2d7-3ec79aa43b33"): "Torch Light"
+    ]
+    
     private let disposeBag = DisposeBag()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(characteristic.uuid.uuidString)
+                // Lookup by CBUUID and fall back to the raw UUID string when unknown
+                Text(self.characteristicUUIDTranslation[characteristic.uuid] ?? characteristic.uuid.uuidString)
                     .font(.caption)
                     .fontWeight(.medium)
                 Spacer()
@@ -118,7 +139,7 @@ struct CharacteristicRow: View {
             }
 
             if let value = value {
-                Text("Value: \(value.map { String(format: "%02x", $0) }.joined(separator: " "))")
+                Text("Value: \(String(decoding: value, as: UTF8.self))")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -134,7 +155,7 @@ struct CharacteristicRow: View {
 
                 if characteristic.properties.contains(.write) || characteristic.properties.contains(.writeWithoutResponse) {
                     Button("Write") {
-                        let testData = Data([0x01, 0x02, 0x03])
+                        let testData = "busy".data(using: .utf8) ?? Data()
                         viewModel.writeCharacteristic(characteristic, data: testData)
                     }
                     .buttonStyle(.bordered)
