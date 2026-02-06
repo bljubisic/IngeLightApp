@@ -105,6 +105,7 @@ struct CharacteristicRow: View {
     @State var viewModel: PeripheralListViewModel
     @State private var value: Data?
     @State private var isNotifying = false
+    @State private var selectedValue: String = ""
 
     // Explicit init to properly set up the @State viewModel backing storage
     init(characteristic: BluetoothCharacteristicProtocol, viewModel: PeripheralListViewModel) {
@@ -115,7 +116,6 @@ struct CharacteristicRow: View {
     // Use CBUUID keys to match `characteristic.uuid: CBUUID` and fix malformed entries
     private var characteristicUUIDTranslation: [CBUUID: String] = [
         CBUUID(string: "9202d270-84ba-4561-a59d-7919212768a1"): "Busy Status",
-        CBUUID(string: "2A37"): "Heart Rate Measurement",
         CBUUID(string: "32fd714a-0510-4025-8c2a-58fff4d5e99d"): "Device Name",
         CBUUID(string: "7db5cec5-3d74-4ff9-bd1a-57664f50e87b"): "Display Mode",
         CBUUID(string: "bafad844-484d-4e41-a31d-e3b14eb50db6"): "Boot Text",
@@ -125,6 +125,19 @@ struct CharacteristicRow: View {
         CBUUID(string: "fcfca47e-f305-4841-b2d7-3ec79aa43b33"): "Torch Light"
     ]
     
+    private var characteristicsAvailableValues: [CBUUID: [String]] = [
+        CBUUID(string: "9202d270-84ba-4561-a59d-7919212768a1"): ["free", "busy", "dnd", "unknown"],
+        CBUUID(string: "3e856d44-0b59-48cc-a961-251f074c3884"): ["min", "low", "medium", "high", "max"],
+        CBUUID(string: "a2a5ff5b-1465-4d0f-b8b5-9d2ca30ab9f0"): ["usb-up", "usb-down"],
+        CBUUID(string: "7db5cec5-3d74-4ff9-bd1a-57664f50e87b"): ["symbol", "circle", "traffic", "color"],
+        CBUUID(string: "fcfca47e-f305-4841-b2d7-3ec79aa43b33"): ["torch-on", "torch-off"]
+    ]
+
+    private var availableValues: [String]? {
+        characteristicsAvailableValues[characteristic.uuid]
+    }
+
+
     private let disposeBag = DisposeBag()
 
     var body: some View {
@@ -144,6 +157,21 @@ struct CharacteristicRow: View {
                     .foregroundColor(.secondary)
             }
 
+            if let availableValues = availableValues, !availableValues.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Select Value:")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Picker("", selection: $selectedValue) {
+                        ForEach(availableValues, id: \.self) { value in
+                            Text(value).tag(value)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+            }
+
             HStack {
                 if characteristic.properties.contains(.read) {
                     Button("Read") {
@@ -155,8 +183,13 @@ struct CharacteristicRow: View {
 
                 if characteristic.properties.contains(.write) || characteristic.properties.contains(.writeWithoutResponse) {
                     Button("Write") {
-                        let testData = "busy".data(using: .utf8) ?? Data()
-                        viewModel.writeCharacteristic(characteristic, data: testData)
+                        let dataToWrite: Data
+                        if let availableValues = availableValues, !availableValues.isEmpty {
+                            dataToWrite = selectedValue.data(using: .utf8) ?? Data()
+                        } else {
+                            dataToWrite = "test".data(using: .utf8) ?? Data()
+                        }
+                        viewModel.writeCharacteristic(characteristic, data: dataToWrite)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -180,6 +213,10 @@ struct CharacteristicRow: View {
                     value = newValue
                 })
                 .disposed(by: disposeBag)
+
+            if let availableValues = availableValues, !availableValues.isEmpty {
+                selectedValue = availableValues[0]
+            }
         }
     }
 }
