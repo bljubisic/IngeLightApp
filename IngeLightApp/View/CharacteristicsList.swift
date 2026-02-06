@@ -11,6 +11,7 @@ import RxSwift
 
 struct CharacteristicsList: View {
     @State var viewModel: PeripheralListViewModel
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack {
@@ -42,6 +43,7 @@ struct CharacteristicsList: View {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Disconnect") {
                             viewModel.disconnect(from: connectedDevice)
+                            dismiss()
                         }
                         .foregroundColor(.red)
                     }
@@ -106,6 +108,7 @@ struct CharacteristicRow: View {
     @State private var value: Data?
     @State private var isNotifying = false
     @State private var selectedValue: String = ""
+    @State private var textInputValue: String = ""
 
     // Explicit init to properly set up the @State viewModel backing storage
     init(characteristic: BluetoothCharacteristicProtocol, viewModel: PeripheralListViewModel) {
@@ -170,6 +173,15 @@ struct CharacteristicRow: View {
                     .pickerStyle(.menu)
                     .labelsHidden()
                 }
+            } else if characteristic.properties.contains(.write) || characteristic.properties.contains(.writeWithoutResponse) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Enter Value:")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    TextField("Type value to write", text: $textInputValue)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.caption)
+                }
             }
 
             HStack {
@@ -187,12 +199,13 @@ struct CharacteristicRow: View {
                         if let availableValues = availableValues, !availableValues.isEmpty {
                             dataToWrite = selectedValue.data(using: .utf8) ?? Data()
                         } else {
-                            dataToWrite = "test".data(using: .utf8) ?? Data()
+                            dataToWrite = textInputValue.data(using: .utf8) ?? Data()
                         }
                         viewModel.writeCharacteristic(characteristic, data: dataToWrite)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .disabled((availableValues == nil || availableValues?.isEmpty == true) && textInputValue.isEmpty)
                 }
 
                 if characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate) {
