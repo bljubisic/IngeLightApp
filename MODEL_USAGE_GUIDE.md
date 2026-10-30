@@ -76,6 +76,18 @@ Represents a BLE characteristic:
 - `writeValue(_:type:) -> Completable` - Write to the characteristic
 - `setNotifyValue(_:) -> Completable` - Enable/disable notifications
 
+### PresenceServiceProtocol
+Source of the user's Microsoft Teams presence:
+- `status: Observable<TeamPresenceStatus?>` - Current presence, `nil` while no source is available
+- `start()` - Start listening for presence updates
+- `stop()` - Stop listening
+
+`TeamsLocalPresenceService` implements it using the Teams local API (`ws://127.0.0.1:8124`) on the same Mac.
+Enable it in Teams under **Settings → Privacy → Manage API** and approve the pairing prompt in Teams (shown during a meeting).
+The meeting state is mapped to the Busy Status characteristic: sharing/recording → `dnd`, in meeting → `busy`,
+otherwise `free`, Teams unreachable → `unknown`. `PeripheralListViewModel` writes the value automatically whenever
+the presence or the connected device changes; the service is only started when running on a Mac.
+
 ## Usage Examples
 
 ### 1. Initialize the Manager
@@ -239,11 +251,13 @@ IngeLightApp/
 │   │   ├── BluetoothManagerProtocol.swift
 │   │   ├── BluetoothDeviceProtocol.swift
 │   │   ├── BluetoothServiceProtocol.swift
-│   │   └── BluetoothCharacteristicProtocol.swift
+│   │   ├── BluetoothCharacteristicProtocol.swift
+│   │   └── PresenceServiceProtocol.swift
 │   ├── BluetoothManager.swift
 │   ├── BluetoothDevice.swift
 │   ├── BluetoothService.swift
-│   └── BluetoothCharacteristic.swift
+│   ├── BluetoothCharacteristic.swift
+│   └── TeamsLocalPresenceService.swift
 ├── ViewModel/
 │   └── PeripheralListViewModel.swift
 └── View/

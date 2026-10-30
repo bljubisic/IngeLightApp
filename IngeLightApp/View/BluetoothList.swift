@@ -9,8 +9,10 @@ import CoreBluetooth
 import SwiftUI
 
 struct BluetoothList: View {
+    // The view model driving the list of discovered devices.
     @State var viewModel: PeripheralListViewModel
 
+    /// The main screen listing discovered BLE devices.
     var body: some View {
         switch viewModel.state {
         case .poweredOn:
@@ -50,6 +52,7 @@ struct BluetoothList: View {
         }
     }
 
+    // Human-readable description of the current Bluetooth state.
     private var stateDescription: String {
         switch viewModel.state {
         case .unknown:
@@ -71,8 +74,10 @@ struct BluetoothList: View {
 }
 
 struct DeviceRow: View {
+    // The device displayed by this row.
     let device: BluetoothDeviceProtocol
 
+    /// A single row in the discovered devices list.
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {

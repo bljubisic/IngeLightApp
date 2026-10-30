@@ -10,9 +10,12 @@ import SwiftUI
 import RxSwift
 
 struct CharacteristicsList: View {
+    // The view model that drives the services and characteristics UI.
     @State var viewModel: PeripheralListViewModel
+    // Dismiss environment value used to pop this screen.
     @Environment(\.dismiss) private var dismiss
 
+    /// Screen that shows device info, services and their characteristics.
     var body: some View {
         VStack {
             if let connectedDevice = viewModel.connectedDevice {
@@ -69,12 +72,18 @@ struct CharacteristicsList: View {
 }
 
 struct ServiceSection: View {
+    // The service whose characteristics are displayed.
     let service: BluetoothServiceProtocol
+    // The view model that performs characteristic interactions.
     @State var viewModel: PeripheralListViewModel
+    // The characteristics currently loaded for this service.
     @State private var characteristics: [BluetoothCharacteristicProtocol] = []
+    // Whether the service section is expanded.
     @State private var isExpanded = false
+    // RxSwift dispose bag for subscriptions created in this view.
     private let disposeBag = DisposeBag()
 
+    /// A section that renders a service and its characteristics.
     var body: some View {
         Section(header: HStack {
             Text("Service: \(service.service.description)")
@@ -93,6 +102,7 @@ struct ServiceSection: View {
             }
         }
         .onAppear {
+            // Subscribe to the service characteristic stream and cache the discovered characteristics.
             service.characteristics
                 .subscribe(onNext: { chars in
                     characteristics = chars
@@ -103,11 +113,17 @@ struct ServiceSection: View {
 }
 
 struct CharacteristicRow: View {
+    // The characteristic being displayed and interacted with.
     let characteristic: BluetoothCharacteristicProtocol
+    // The view model that performs read/write/notify actions.
     @State var viewModel: PeripheralListViewModel
+    // The last observed value of the characteristic.
     @State private var value: Data?
+    // Whether notifications are currently enabled for this characteristic.
     @State private var isNotifying = false
+    // The currently selected value from the picker.
     @State private var selectedValue: String = ""
+    // The free-form text entered for writes.
     @State private var textInputValue: String = ""
 
     // Explicit init to properly set up the @State viewModel backing storage
@@ -116,7 +132,7 @@ struct CharacteristicRow: View {
         self._viewModel = State(initialValue: viewModel)
     }
     
-    // Use CBUUID keys to match `characteristic.uuid: CBUUID` and fix malformed entries
+    // Maps known characteristic UUIDs to human-friendly names; falls back to the raw UUID string.
     private var characteristicUUIDTranslation: [CBUUID: String] = [
         CBUUID(string: "9202d270-84ba-4561-a59d-7919212768a1"): "Busy Status",
         CBUUID(string: "32fd714a-0510-4025-8c2a-58fff4d5e99d"): "Device Name",
@@ -128,6 +144,7 @@ struct CharacteristicRow: View {
         CBUUID(string: "fcfca47e-f305-4841-b2d7-3ec79aa43b33"): "Torch Light"
     ]
     
+    // Maps known characteristic UUIDs to the list of allowed/selectable values.
     private var characteristicsAvailableValues: [CBUUID: [String]] = [
         CBUUID(string: "9202d270-84ba-4561-a59d-7919212768a1"): ["free", "busy", "dnd", "unknown"],
         CBUUID(string: "3e856d44-0b59-48cc-a961-251f074c3884"): ["min", "low", "medium", "high", "max"],
@@ -136,13 +153,16 @@ struct CharacteristicRow: View {
         CBUUID(string: "fcfca47e-f305-4841-b2d7-3ec79aa43b33"): ["torch-on", "torch-off"]
     ]
 
+    // The selectable values for this characteristic, if any are known.
     private var availableValues: [String]? {
         characteristicsAvailableValues[characteristic.uuid]
     }
 
 
+    // RxSwift dispose bag for subscriptions created in this view.
     private let disposeBag = DisposeBag()
 
+    // The row UI: value display, selection/write input, and read/write/notify actions.
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -221,6 +241,7 @@ struct CharacteristicRow: View {
         }
         .padding(.vertical, 4)
         .onAppear {
+            // Subscribe to the characteristic value stream and default the picker selection.
             characteristic.value
                 .subscribe(onNext: { newValue in
                     value = newValue
@@ -235,8 +256,10 @@ struct CharacteristicRow: View {
 }
 
 struct PropertiesBadges: View {
+    // The properties supported by the characteristic.
     let properties: CBCharacteristicProperties
 
+    /// Badges summarizing the characteristic properties (R, W, WR, N, I).
     var body: some View {
         HStack(spacing: 4) {
             if properties.contains(.read) {
@@ -259,9 +282,12 @@ struct PropertiesBadges: View {
 }
 
 struct PropertyBadge: View {
+    // The badge text (e.g. "R").
     let text: String
+    // The color associated with the badge.
     let color: Color
 
+    /// A small colored badge displaying a property code.
     var body: some View {
         Text(text)
             .font(.caption2)

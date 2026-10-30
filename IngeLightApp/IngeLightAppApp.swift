@@ -10,7 +10,10 @@ import SwiftUI
 struct IngeLightAppApp: App {
     var body: some Scene {
         WindowGroup {
-            BluetoothList(viewModel: PeripheralListViewModel())
+            BluetoothList(viewModel: PeripheralListViewModel(
+                bluetoothManager: BluetoothManager(),
+                presenceService: TeamsLocalPresenceService()
+            ))
         }
     }
 }
